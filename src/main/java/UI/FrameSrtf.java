@@ -357,7 +357,7 @@ public class FrameSrtf extends javax.swing.JFrame {
         //insertar datos obtenidos en la tabla
         for (int i = 0; i < listComplete.size(); i++) {
             Scheduling sc = listComplete.get(i);
-            mdlComplete.addRow(new Object[]{sc.getName(),sc.getArrivalTime(),sc.getBurstTime(),sc.getCountFrames(),sc.getWaitingTime(),sc.getTurnaroundTime()});
+            mdlComplete.addRow(new Object[]{sc.getName(),sc.getArrivalTime(),sc.getBurstTime(),sc.getcountPages(),sc.getWaitingTime(),sc.getTurnaroundTime()});
             
         }
         

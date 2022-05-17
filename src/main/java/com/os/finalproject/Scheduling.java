@@ -16,7 +16,7 @@ public class Scheduling {
     private int burstTime;
     private int waitingTime;
     private int turnaroundTime;
-    private int countFrames;
+    private int countPages;
     private boolean flag;
     private boolean complete;
 
@@ -36,12 +36,12 @@ public class Scheduling {
         this.burstTime = burstTime;
     }
 
-    public Scheduling(int id, String name, int arrivalTime, int burstTime, int countFrames) {
+    public Scheduling(int id, String name, int arrivalTime, int burstTime, int countPages) {
         this.id = id;
         this.name = name;
         this.arrivalTime = arrivalTime;
         this.burstTime = burstTime;
-        this.countFrames = countFrames;
+        this.countPages = countPages;
     }
     
 
@@ -63,12 +63,12 @@ public class Scheduling {
     
  
     
-    public int getCountFrames() {
-        return countFrames;
+    public int getcountPages() {
+        return countPages;
     }
 
-    public void setCountFrames(int countFrames) {
-        this.countFrames = countFrames;
+    public void setcountPages(int countPages) {
+        this.countPages = countPages;
     }
     
 

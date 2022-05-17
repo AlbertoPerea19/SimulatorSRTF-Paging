@@ -8,6 +8,8 @@ import UI.FrameSrtf;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Stack;
+
 import com.os.finalproject.Scheduling;
 import java.util.concurrent.TimeUnit;
 
@@ -19,22 +21,23 @@ import java.util.concurrent.TimeUnit;
 public class ShortestRemaining {
 
     //contadores de las frames/pages
-    int cont=0;
+    
     int contQueue=0;
     
     private float totalwt;
     private float totaltat;
     
     List<Scheduling> list= new ArrayList<>();
-    String frames[]=new String[16];
+    String frames[][]=new String[16][2];
     Scheduling queue[]= new Scheduling[5];
     
     
     //Enlistar procesos
     public void implementation(List<Scheduling> lis) throws InterruptedException{
+        //Recibir datos ingresados
         list.addAll(lis);
         Scheduling sc[]= new Scheduling[list.size()];
-        
+        //Cargar datos
         list.toArray(sc);
         findTheBest(sc, sc.length);
         
@@ -62,13 +65,15 @@ public class ShortestRemaining {
               
     }
     
-    
+    //Calcular tiempos de espera
     public void waitingTime(Scheduling sc[], int n, int wt[], Scheduling queue[]) throws InterruptedException{
         //asignación de valores
         int remaining[]= new int[n];
         Boolean valida=true;
         int complete=0, second=0, max=Integer.MAX_VALUE, shortest=0, finishTime;
         
+        
+
         for(int i=0;i<n;i++){
             remaining[i]=sc[i].getBurstTime();
             sc[i].setFlag(true);
@@ -87,30 +92,44 @@ public class ShortestRemaining {
                     flag=true;
                 }
             }
-            //Si no existe proceso que cumpla, realizar recursion
+            //Si no existe proceso que cumpla, regresar al inicio
             if(!flag){
                 second++;
                 continue;
             }
-            //Validar si tiene paginación
-            if(sc[shortest].getCountFrames()==0){
-                valida=insertionFrame(sc[shortest]);
-                //En caso que el proceso esté en cola, encontrar proceso con menor tiempo restante
-                if(!valida){
-                    int index2=0;
-                    int menor=sc[0].getBurstTime();
-                    for(int i=0; i<shortest;i++){
-                        if(sc[i].getBurstTime()<menor && sc[i].isFlag() && !sc[i].isComplete()){
-                            menor=sc[i].getBurstTime();
-                            index2++;
-                        }
-                    }
-                    shortest=index2;
-                    flag=true;
-                                    
+
+            //Validar no ha sido asignado una pagina
+            if(sc[shortest].getcountPages()==0){
+                //Generarle tamaño de pagina
+                insertionPage(sc[shortest]);
+                
+                //Generar frames disponibles
+                int numberRandom=generateRandom();
+                System.out.println("Frames disponibles : "+numberRandom);
+
+                //En caso que solo existe un proceso, lo meterá a ejecución
+                if(complete==n-1){
+                    int numr=0;
+                    do{
+                        numr=generateRandom();
+                    }while(numr<sc[shortest].getcountPages());
+                }
+                //Enlistar a cola, en caso de que no exista frames suficientes
+                if(numberRandom<sc[shortest].getcountPages()){
+                    
+                    sc[shortest].setFlag(false);
+                    queue[contQueue]=sc[shortest];
+                    contQueue++;
+                    System.out.println("NO es posible ingresarlo, agregando a la cola...");
+                    System.out.println("");
+                    max=Integer.MAX_VALUE;
+                    second++;
+                    continue;
+                    
                 }
             }
-            
+
+
             //reducir tiempo restante en uno
             if(flag){
             remaining[shortest]--;
@@ -126,17 +145,12 @@ public class ShortestRemaining {
                     complete++;
                     sc[shortest].setComplete(true);
                     flag=false;
-                    //reiniciar contador
-                    cont=cont-sc[shortest].getCountFrames();
-                    if(cont<0){
-                        cont=0;
-                    }
-                    //Eliminar proceso de la RAM
-                    for(int i=0;i<frames.length;i++){
-                        if(frames[i]!=null)
-                            if(frames[i].equals(sc[shortest].getName()))
-                                frames[i]=null;
-                    }
+                    
+                    System.out.println("en el tiempo: "+second+" el proceso "+sc[shortest].getName()+" ha finalizado");
+                    printTablePages(sc[shortest]);
+
+                    //Validando si la cola no está vacia
+                    if(!queueIsEmpty()){
                         int menor=0;
                         int index=0;
                         //Encontrar elemento más pequeño de la cola
@@ -147,49 +161,10 @@ public class ShortestRemaining {
                             }
                            
                         }
-                        //Asignar proceso de la cola a la RAM
-                        if(queue[index]!=null && queue[index].getCountFrames()<=frames.length-cont){
-                            int queue_frames=queue[index].getCountFrames();
-                            
-                            while(queue_frames!=0){
-                                frames[cont]=queue[index].getName();
-                                cont++;
-                                queue_frames--;
-                            }
-                            queue[index].setFlag(true);
-                            queue[index]=null;
-                            
-                            contQueue--;  
-                        } 
-                        //En caso de no cumplir con requisitos, asignar anterior proceso de la cola
-                        if(index!=0){
-                                if(queue[index-1]!=null && queue[index-1].getCountFrames()<=frames.length-cont){
-                                    int queue_frames=queue[index-1].getCountFrames();
+                        //regresar proceso a ejecucion
+                        returnFrames(index,sc[shortest]);
+                    }
 
-                                    while(queue_frames!=0){
-                                        frames[cont]=queue[index-1].getName();
-                                        cont++;
-                                        queue_frames--;
-                                    }
-                                    queue[index-1].setFlag(true);
-                                    queue[index-1]=null;
-                                }
-                            }
-                        //En caso de no cumplir con requisitos, asignar siguiente proceso de la cola
-                        if(queue[index+1]!=null && queue[index+1].getCountFrames()<=frames.length-cont){
-                            int queue_frames=queue[index+1].getCountFrames();
-                            
-                            while(queue_frames!=0){
-                                frames[cont]=queue[index+1].getName();
-                                cont++;
-                                queue_frames--;
-                            }
-                            queue[index+1].setFlag(true);
-                            queue[index+1]=null;
-                            
-                        }
-                    
-                    System.out.println("en el tiempo: "+second+" el proceso "+sc[shortest].getName()+" ha finalizado");
                     finishTime=second+1;
                     //calcular tiempo de espera
                     wt[shortest]=finishTime-sc[shortest].getArrivalTime()-sc[shortest].getBurstTime();
@@ -202,50 +177,95 @@ public class ShortestRemaining {
                 }
    
             }
-            //print tabla
+            //print cola
             if(max==1)
-                printTable();
+                printQueue(sc[shortest]);
             
             second++;
             TimeUnit.SECONDS.sleep(1);
         }
         System.out.println("en el tiempo: "+second+" todos los procesos finalizaron");
+        
+        
     }
     
-    public void printTable(){
-        //imprimir frames
-      /*  System.out.println("EN RAM");
-         for(int i=0;i<frames.length;i++){
-             System.out.println(frames[i]);
-         }
-
-         //imprimir pages
-         System.out.println("EN COLA");
-         for(int i=0;i<queue.length;i++){
-             if(queue[i]!=null)
-             System.out.println(queue[i].getName());
-             else
-                 System.out.println(queue[i]);
-         }*/
-        System.out.print("RAM   ");
-        System.out.println("EN COLA");
-        for(int i=0;i<frames.length;i++){
-            if(i<queue.length){
-                System.out.print(frames[i]);
-                System.out.print("    ");
-                if(queue[i]!=null)
-                 System.out.println(queue[i].getName());
-                 else
-                     System.out.println(queue[i]);
+    //Asignar proceso de la cola a los frames
+    public void returnFrames(int index, Scheduling sc){
+        
+        int newFrame = generateRandom();
+        if(queue[index]!=null && queue[index].getcountPages()<=newFrame){
+            
+            System.out.println("***Regresando de cola a ejecución***");
+            System.out.println("Paginas de "+queue[index].getName()+" es: "+queue[index].getcountPages());
+            System.out.println("Frames disponibles: "+ newFrame);
+            System.out.println("");            
+            
+            queue[index].setFlag(true);
+            queue[index]=null;
+            contQueue--;  
+        }else{
+            //En caso de no cumplir con requisitos, asignar otro proceso de la cola
+            if(queue[index+1]!=null){
+                index++;
+                returnFrames(index,sc);
             }else{
-                System.out.println(frames[i]);
-
+                if(index!=0 && queue[index-1]!=null){
+                    index--;
+                    returnFrames(index,sc);
+                }else{
+                    returnFrames(index, sc);
+                }
             }
+        } 
+        
+        
+    }
+
+    //Imprimir tabla de paginas
+    public void printTablePages(Scheduling sc){
+        int pos;
+        int nCartas = sc.getcountPages();
+        Stack < Integer > pCartas = new Stack < Integer > ();
+        for (int i = 0; i < nCartas ; i++) {
+            pos = (int) Math.floor(Math.random() * nCartas );
+            while (pCartas.contains(pos)) {
+                pos = (int) Math.floor(Math.random() * nCartas );
+            }
+        pCartas.push(pos);
         }
+        System.out.println("");
+        System.out.println("TABLA DE PAGINA");
+        System.out.println("");
+        System.out.println("----------------");
+        System.out.println(sc.getName());
+        System.out.println("----------------");
+        System.out.println("Frames      Paginas");
+        for(int i=0;i<nCartas;i++){
+            System.out.print("|");
+            System.out.print(pCartas.get(i).toString());
+            System.out.println("|             "+i+" |");
+        }
+        System.out.println("");
+    }
+
+    //Impresion de la cola
+    public void printQueue(Scheduling sc){
+        System.out.println("--------------");
+        System.out.println(" En ejecución");
+        System.out.println("--------------");
+        System.out.println(sc.getName());
+        System.out.println("--------------");
+        System.out.println(" En cola");
+        System.out.println("--------------");
+        for(int k=0;k<queue.length;k++){
+            if(queue[k]!=null)
+                System.out.println(queue[k].getName());
+        }
+        System.out.println("");        
 
     }
     
-    
+    //Calcular tiempos de salidas
     public void turnAroundTime(Scheduling sc[],int n, int wait[], int turn[]){
         for (int i = 0; i < n; i++) {
             //asignacion tiempo de entrega 
@@ -254,39 +274,47 @@ public class ShortestRemaining {
         }
     }
     
-    //insertar procesos en los frames
-    public Boolean insertionFrame(Scheduling sc){
+    //Asignar paginas
+    public void insertionPage(Scheduling sc){
         
-        //asignacion valor random
-        Random r= new Random();      
+        //generar numero random
+        int randomNumber= generateRandom();
+        
+       System.out.println("Paginas asignadas a "+sc.getName()+" es: "+randomNumber);
+
+        //asignar paginas al proceso
+       sc.setcountPages(randomNumber);
+    }
+    
+    //generar valor random
+    public int generateRandom(){
+        
+        Random r= new Random();  
+        //Valor maximo del frame    
         int maxValue=16;
         int randomNumber = 0;
+        //validar que el numero random sea diferente de 0
         do {
           randomNumber = r.nextInt(maxValue);
         } while(randomNumber == 0);
+
         
-       System.out.println("Frames asignados a "+sc.getName()+" es: "+randomNumber);
-        
-       //Validar si entra en RAM
-        if((maxValue-cont)>=randomNumber ){
-            sc.setCountFrames(randomNumber);
-            
-            while(randomNumber!=0){
-                frames[cont]=sc.getName();
-                cont++;
-                randomNumber--;
-            }
-        //Meter en cola    
-        }else{
-            sc.setCountFrames(randomNumber);
-            sc.setFlag(false);
-            queue[contQueue]=sc;
-            contQueue++;
-            System.out.println("No es posible agregarse a RAM, agregando a la memoria virtual...");
-            }
-        return sc.isFlag();
+
+        return randomNumber;
     }
 
+    //Validar si cola está vacia
+    public boolean queueIsEmpty(){
+        boolean isEmpty=true;
+        for(int i=0;i<queue.length;i++){
+            if(queue[i]!=null){
+                isEmpty=false;
+            }
+        }
+        return isEmpty;
+    }
+   
+    //Getter y setters
     public float getTotalwt() {
         return totalwt;
     }
@@ -305,7 +333,7 @@ public class ShortestRemaining {
 
     
     
-    
+    /*
     public static void main(String[] args) throws InterruptedException {
         
         Scheduling p1= new Scheduling(1,"p1",0,9);
@@ -321,10 +349,10 @@ public class ShortestRemaining {
         list.add(p4);
         sr.implementation(list);
 
-        System.out.println(p1.getCountFrames());
-        System.out.println(p2.getCountFrames());
-        System.out.println(p3.getCountFrames());
-        System.out.println(p4.getCountFrames());
+        System.out.println(p1.getcountPages());
+        System.out.println(p2.getcountPages());
+        System.out.println(p3.getcountPages());
+        System.out.println(p4.getcountPages());
 
         for(int i=0;i<sr.frames.length;i++){
             System.out.println(sr.frames[i]);
@@ -332,4 +360,5 @@ public class ShortestRemaining {
         
        
     }
+    */
 }
