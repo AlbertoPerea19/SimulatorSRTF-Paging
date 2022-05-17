@@ -157,11 +157,11 @@ public class FrameSrtf extends javax.swing.JFrame {
                 {null, null, null, null, null, null}
             },
             new String [] {
-                "Name", "Arrival Time", "Burst Time", "Frames", "Waiting Time", "Turnaround Time"
+                "Name", "Arrival Time", "Burst Time", "Pages", "Waiting Time", "Turnaround Time"
             }
         ) {
             boolean[] canEdit = new boolean [] {
-                false, true, false, false, false, false
+                false, false, false, false, false, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
